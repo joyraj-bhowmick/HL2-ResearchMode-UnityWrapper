@@ -21,8 +21,6 @@ namespace winrt::HL2UnityPlugin::implementation
     struct HL2ResearchMode : HL2ResearchModeT<HL2ResearchMode>
     {
         HL2ResearchMode();
-        static HRESULT CheckCamConsent();
-        static HRESULT CheckImuConsent();
 
         UINT16 GetCenterDepth();
         int GetDepthBufferSize();
@@ -33,10 +31,16 @@ namespace winrt::HL2UnityPlugin::implementation
 		hstring PrintLFExtrinsics();
 		hstring PrintRFResolution();
 		hstring PrintRFExtrinsics();
+        hstring PrintLLResolution();
+        hstring PrintLLExtrinsics();
+        hstring PrintRRResolution();
+        hstring PrintRRExtrinsics();
 
+        winrt::Windows::Perception::Spatial::SpatialCoordinateSystem GetRigNodeSpatialCoordinateSystem();
         void InitializeDepthSensor();
         void InitializeLongDepthSensor();
         void InitializeSpatialCamerasFront();
+        void InitializeSpatialCamerasSide();
         void InitializeAccelSensor();
         void InitializeGyroSensor();
         void InitializeMagSensor();
@@ -44,6 +48,7 @@ namespace winrt::HL2UnityPlugin::implementation
         void StartDepthSensorLoop(bool reconstructPointCloud = true);
         void StartLongDepthSensorLoop(bool reconstructPointCloud = true);
         void StartSpatialCamerasFrontLoop();
+        void StartSpatialCamerasSideLoop();
         void StartAccelSensorLoop();
         void StartGyroSensorLoop();
         void StartMagSensorLoop();
@@ -58,6 +63,8 @@ namespace winrt::HL2UnityPlugin::implementation
         bool LongDepthMapTextureUpdated();
 		bool LFImageUpdated();
 		bool RFImageUpdated();
+        bool LLImageUpdated();
+        bool RRImageUpdated();
         bool AccelSampleUpdated();
         bool GyroSampleUpdated();
         bool MagSampleUpdated();
@@ -77,6 +84,18 @@ namespace winrt::HL2UnityPlugin::implementation
         com_array<uint8_t> GetLFCameraBuffer(int64_t& ts);
         com_array<uint8_t> GetRFCameraBuffer(int64_t& ts);
         com_array<uint8_t> GetLRFCameraBuffer(int64_t& ts_left, int64_t& ts_right);
+        com_array<uint8_t> GetLLCameraBuffer(int64_t& ts);
+        com_array<uint8_t> GetRRCameraBuffer(int64_t& ts);
+        com_array<uint8_t> GetLRSCameraBuffer(int64_t& ts_left, int64_t& ts_right);
+
+        com_array<float> GetLFCameraPose();
+        // com_array<float> GetLFCameraPoseInvMatrix();
+        com_array<float> GetRFCameraPose();
+        // com_array<float> GetRFCameraPoseInvMatrix();
+        com_array<float> GetLLCameraPose();
+        // com_array<float> GetLLCameraPoseInvMatrix();
+        com_array<float> GetRRCameraPose();
+        // com_array<float> GetRRCameraPoseInvMatrix();
 
         com_array<float> GetAccelSample();
         com_array<float> GetGyroSample();
@@ -103,6 +122,8 @@ namespace winrt::HL2UnityPlugin::implementation
 
 		UINT8* m_LFImage = nullptr;
 		UINT8* m_RFImage = nullptr;
+        UINT8* m_LLImage = nullptr;
+        UINT8* m_RRImage = nullptr;
         float* m_accelSample = nullptr;
         float* m_gyroSample = nullptr;
         float* m_magSample = nullptr;
@@ -115,6 +136,10 @@ namespace winrt::HL2UnityPlugin::implementation
         IResearchModeCameraSensor* m_LFCameraSensor = nullptr;
         IResearchModeSensor* m_RFSensor = nullptr;
         IResearchModeCameraSensor* m_RFCameraSensor = nullptr;
+        IResearchModeSensor* m_LLSensor = nullptr;
+        IResearchModeCameraSensor* m_LLCameraSensor = nullptr;
+        IResearchModeSensor* m_RRSensor = nullptr;
+        IResearchModeCameraSensor* m_RRCameraSensor = nullptr;
         IResearchModeSensor* m_accelSensor = nullptr;
         IResearchModeSensor* m_gyroSensor = nullptr;
         IResearchModeSensor* m_magSensor = nullptr;
@@ -122,6 +147,8 @@ namespace winrt::HL2UnityPlugin::implementation
         ResearchModeSensorResolution m_longDepthResolution;
         ResearchModeSensorResolution m_LFResolution;
         ResearchModeSensorResolution m_RFResolution;
+        ResearchModeSensorResolution m_LLResolution;
+        ResearchModeSensorResolution m_RRResolution;
         IResearchModeSensorDevice* m_pSensorDevice = nullptr;
         std::vector<ResearchModeSensorDescriptor> m_sensorDescriptors;
         IResearchModeSensorDeviceConsent* m_pSensorDeviceConsent = nullptr;
@@ -131,12 +158,15 @@ namespace winrt::HL2UnityPlugin::implementation
         std::atomic_int m_longDepthBufferSize = 0;
         std::atomic_int m_LFbufferSize = 0;
         std::atomic_int m_RFbufferSize = 0;
+        std::atomic_int m_LLbufferSize = 0;
+        std::atomic_int m_RRbufferSize = 0;
         std::atomic_uint16_t m_centerDepth = 0;
         float m_centerPoint[3]{ 0,0,0 };
 
         std::atomic_bool m_depthSensorLoopStarted = false;
         std::atomic_bool m_longDepthSensorLoopStarted = false;
         std::atomic_bool m_spatialCamerasFrontLoopStarted = false;
+        std::atomic_bool m_spatialCamerasSideLoopStarted = false;
         std::atomic_bool m_accelSensorLoopStarted = false;
         std::atomic_bool m_gyroSensorLoopStarted = false;
         std::atomic_bool m_magSensorLoopStarted = false;
@@ -150,6 +180,8 @@ namespace winrt::HL2UnityPlugin::implementation
         std::atomic_bool m_useRoiFilter = false;
 		std::atomic_bool m_LFImageUpdated = false;
 		std::atomic_bool m_RFImageUpdated = false;
+        std::atomic_bool m_LLImageUpdated = false;
+        std::atomic_bool m_RRImageUpdated = false;
         std::atomic_bool m_accelSampleUpdated = false;
         std::atomic_bool m_gyroSampleUpdated = false;
         std::atomic_bool m_magSampleUpdated = false;
@@ -162,12 +194,15 @@ namespace winrt::HL2UnityPlugin::implementation
         static void DepthSensorLoop(HL2ResearchMode* pHL2ResearchMode);
         static void LongDepthSensorLoop(HL2ResearchMode* pHL2ResearchMode);
         static void SpatialCamerasFrontLoop(HL2ResearchMode* pHL2ResearchMode);
+        static void SpatialCamerasSideLoop(HL2ResearchMode* pHL2ResearchMode);
         static void AccelSensorLoop(HL2ResearchMode* pHL2ResearchMode);
         static void GyroSensorLoop(HL2ResearchMode* pHL2ResearchMode);
         static void MagSensorLoop(HL2ResearchMode* pHL2ResearchMode);
         static void CamAccessOnComplete(ResearchModeSensorConsent consent);
         static void ImuAccessOnComplete(ResearchModeSensorConsent consent);
         std::string MatrixToString(DirectX::XMFLOAT4X4 mat);
+        com_array<float> XMFLOAT4X4ToCom_ArrayFloat(DirectX::XMFLOAT4X4 mat);
+        // com_array<float> XMMATRIXToCom_ArrayFloat(DirectX::XMMATRIX mat);
         DirectX::XMFLOAT4X4 m_depthCameraPose;
         DirectX::XMMATRIX m_depthCameraPoseInvMatrix;
         DirectX::XMFLOAT4X4 m_longDepthCameraPose;
@@ -176,9 +211,14 @@ namespace winrt::HL2UnityPlugin::implementation
         DirectX::XMMATRIX m_LFCameraPoseInvMatrix;
         DirectX::XMFLOAT4X4 m_RFCameraPose;
         DirectX::XMMATRIX m_RFCameraPoseInvMatrix;
+        DirectX::XMFLOAT4X4 m_LLCameraPose;
+        DirectX::XMMATRIX m_LLCameraPoseInvMatrix;
+        DirectX::XMFLOAT4X4 m_RRCameraPose;
+        DirectX::XMMATRIX m_RRCameraPoseInvMatrix;
         std::thread* m_pDepthUpdateThread;
         std::thread* m_pLongDepthUpdateThread;
         std::thread* m_pSpatialCamerasFrontUpdateThread;
+        std::thread* m_pSpatialCamerasSideUpdateThread;
         std::thread* m_pAccelUpdateThread;
         std::thread* m_pGyroUpdateThread;
         std::thread* m_pMagUpdateThread;
@@ -205,6 +245,8 @@ namespace winrt::HL2UnityPlugin::implementation
         struct SpatialCameraFrame {
             Frame LFFrame;
             Frame RFFrame;
+            Frame LLFrame;
+            Frame RRFrame;
         } m_lastSpatialFrame;
     };
 }

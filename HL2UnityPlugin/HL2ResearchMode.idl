@@ -19,7 +19,19 @@ namespace HL2UnityPlugin
 
         UInt8[] GetLFCameraBuffer(out Int64 ts);
         UInt8[] GetRFCameraBuffer(out Int64 ts);
+        UInt8[] GetLLCameraBuffer(out Int64 ts);
+        UInt8[] GetRRCameraBuffer(out Int64 ts);
         UInt8[] GetLRFCameraBuffer(out Int64 ts_left, out Int64 ts_right);
+        UInt8[] GetLRSCameraBuffer(out Int64 ts_left, out Int64 ts_right);
+
+        Single[] GetLFCameraPose();
+        //Single[] GetLFCameraPoseInvMatrix();
+        Single[] GetRFCameraPose();
+        //Single[] GetRFCameraPoseInvMatrix();
+        Single[] GetLLCameraPose();
+        //Single[] GetLLCameraPoseInvMatrix();
+        Single[] GetRRCameraPose();
+        //Single[] GetRRCameraPoseInvMatrix();
         
         Single[] GetAccelSample();
         Single[] GetGyroSample();
@@ -34,6 +46,10 @@ namespace HL2UnityPlugin
 		String PrintLFExtrinsics();
 		String PrintRFResolution();
 		String PrintRFExtrinsics();
+        String PrintLLResolution();
+        String PrintLLExtrinsics();
+        String PrintRRResolution();
+        String PrintRRExtrinsics();
 
         Boolean DepthMapTextureUpdated();
         Boolean ShortAbImageTextureUpdated();
@@ -44,14 +60,17 @@ namespace HL2UnityPlugin
 
 		Boolean LFImageUpdated();
 		Boolean RFImageUpdated();
+        Boolean LLImageUpdated();
+        Boolean RRImageUpdated();
         Boolean AccelSampleUpdated();
         Boolean GyroSampleUpdated();
         Boolean MagSampleUpdated();
 
-
+        Windows.Perception.Spatial.SpatialCoordinateSystem GetRigNodeSpatialCoordinateSystem();
         void InitializeDepthSensor();
         void InitializeLongDepthSensor();
         void InitializeSpatialCamerasFront();
+        void InitializeSpatialCamerasSide();
         void InitializeAccelSensor();
         void InitializeGyroSensor();
         void InitializeMagSensor();
@@ -61,6 +80,7 @@ namespace HL2UnityPlugin
         void StartLongDepthSensorLoop();
         void StartLongDepthSensorLoop(Boolean reconstructPointCloud);
 		void StartSpatialCamerasFrontLoop();
+        void StartSpatialCamerasSideLoop();
         void StartAccelSensorLoop();
         void StartGyroSensorLoop();
         void StartMagSensorLoop();

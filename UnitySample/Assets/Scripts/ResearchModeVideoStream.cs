@@ -46,6 +46,11 @@ public class ResearchModeVideoStream : MonoBehaviour
     private Texture2D longAbImageMediaTexture = null;
     private byte[] longAbImageFrameData = null;
 
+    public GameObject LLPreviewPlane = null;
+    private Material LLMediaMaterial = null;
+    private Texture2D LLMediaTexture = null;
+    private byte[] LLFrameData = null;
+
     public GameObject LFPreviewPlane = null;
     private Material LFMediaMaterial = null;
     private Texture2D LFMediaTexture = null;
@@ -55,6 +60,11 @@ public class ResearchModeVideoStream : MonoBehaviour
     private Material RFMediaMaterial = null;
     private Texture2D RFMediaTexture = null;
     private byte[] RFFrameData = null;
+
+    public GameObject RRPreviewPlane = null;
+    private Material RRMediaMaterial = null;
+    private Texture2D RRMediaTexture = null;
+    private byte[] RRFrameData = null;
 
     public TextMeshPro text;
 
@@ -118,7 +128,13 @@ public class ResearchModeVideoStream : MonoBehaviour
             shortAbImagePreviewPlane.SetActive(false);
         }
         
-
+        if (LLPreviewPlane != null)
+        {
+            LLMediaMaterial = LLPreviewPlane.GetComponent<MeshRenderer>().material;
+            LLMediaTexture = new Texture2D(640, 480, TextureFormat.Alpha8, false);
+            LLMediaMaterial.mainTexture = LLMediaTexture;
+        }
+        
         if (LFPreviewPlane != null)
         {
             LFMediaMaterial = LFPreviewPlane.GetComponent<MeshRenderer>().material;
@@ -131,6 +147,13 @@ public class ResearchModeVideoStream : MonoBehaviour
             RFMediaMaterial = RFPreviewPlane.GetComponent<MeshRenderer>().material;
             RFMediaTexture = new Texture2D(640, 480, TextureFormat.Alpha8, false);
             RFMediaMaterial.mainTexture = RFMediaTexture;
+        }
+
+        if (RRPreviewPlane != null)
+        {
+            RRMediaMaterial = RRPreviewPlane.GetComponent<MeshRenderer>().material;
+            RRMediaTexture = new Texture2D(640, 480, TextureFormat.Alpha8, false);
+            RRMediaMaterial.mainTexture = RRMediaTexture;
         }
 
         if (pointCloudRendererGo != null)
@@ -148,6 +171,7 @@ public class ResearchModeVideoStream : MonoBehaviour
         else if (depthSensorMode == DepthSensorMode.ShortThrow) researchMode.InitializeDepthSensor();
         
         researchMode.InitializeSpatialCamerasFront();
+        researchMode.InitializeSpatialCamerasSide();
         researchMode.SetReferenceCoordinateSystem(unityWorldOrigin);
         researchMode.SetPointCloudDepthOffset(0);
 
@@ -156,6 +180,7 @@ public class ResearchModeVideoStream : MonoBehaviour
         else if (depthSensorMode == DepthSensorMode.ShortThrow) researchMode.StartDepthSensorLoop(enablePointCloud);
 
         researchMode.StartSpatialCamerasFrontLoop();
+        researchMode.StartSpatialCamerasSideLoop();
 #endif
     }
 
@@ -247,6 +272,26 @@ public class ResearchModeVideoStream : MonoBehaviour
             }
         }
 
+        // update LL camera texture
+        if (startRealtimePreview && LLPreviewPlane != null && researchMode.LLImageUpdated())
+        {
+            long ts;
+            byte[] frameTexture = researchMode.GetLLCameraBuffer(out ts);
+            if (frameTexture.Length > 0)
+            {
+                if (LLFrameData == null)
+                {
+                    LLFrameData = frameTexture;
+                }
+                else
+                {
+                    System.Buffer.BlockCopy(frameTexture, 0, LLFrameData, 0, LLFrameData.Length);
+                }
+
+                LLMediaTexture.LoadRawTextureData(LLFrameData);
+                LLMediaTexture.Apply();
+            }
+        }
         // update LF camera texture
         if (startRealtimePreview && LFPreviewPlane != null && researchMode.LFImageUpdated())
         {
@@ -285,6 +330,26 @@ public class ResearchModeVideoStream : MonoBehaviour
 
                 RFMediaTexture.LoadRawTextureData(RFFrameData);
                 RFMediaTexture.Apply();
+            }
+        }
+        // update RR camera texture
+        if (startRealtimePreview && RRPreviewPlane != null && researchMode.RRImageUpdated())
+        {
+            long ts;
+            byte[] frameTexture = researchMode.GetRRCameraBuffer(out ts);
+            if (frameTexture.Length > 0)
+            {
+                if (RRFrameData == null)
+                {
+                    RRFrameData = frameTexture;
+                }
+                else
+                {
+                    System.Buffer.BlockCopy(frameTexture, 0, RRFrameData, 0, RRFrameData.Length);
+                }
+
+                RRMediaTexture.LoadRawTextureData(RRFrameData);
+                RRMediaTexture.Apply();
             }
         }
 
@@ -368,7 +433,8 @@ public class ResearchModeVideoStream : MonoBehaviour
 #if ENABLE_WINMD_SUPPORT
 #if WINDOWS_UWP
         long ts_ft_left, ts_ft_right;
-        var LRFImage = researchMode.GetLRFCameraBuffer(out ts_ft_left, out ts_ft_right);
+        // var LRFImage = researchMode.GetLRFCameraBuffer(out ts_ft_left, out ts_ft_right);
+        var LRSImage = researchMode.GetLRSCameraBuffer(out ts_ft_left, out ts_ft_right);
         Windows.Perception.PerceptionTimestamp ts_left = Windows.Perception.PerceptionTimestampHelper.FromHistoricalTargetTime(DateTime.FromFileTime(ts_ft_left));
         Windows.Perception.PerceptionTimestamp ts_right = Windows.Perception.PerceptionTimestampHelper.FromHistoricalTargetTime(DateTime.FromFileTime(ts_ft_right));
 
@@ -382,7 +448,8 @@ public class ResearchModeVideoStream : MonoBehaviour
 
         if (tcpClient != null)
         {
-            tcpClient.SendSpatialImageAsync(LRFImage, ts_unix_left, ts_unix_right);
+            // tcpClient.SendSpatialImageAsync(LRFImage, ts_unix_left, ts_unix_right);
+            tcpClient.SendSpatialImageAsync(LRSImage, ts_unix_left, ts_unix_right);
         }
 #endif
 #endif
